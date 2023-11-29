@@ -39,8 +39,7 @@ async fn main() {
         // The default axum body size limit is 2MiB, so we increase it to 1GiB.
         .layer(DefaultBodyLimit::max(1024 * 1024 * 1024));
 
-    axum::Server::bind(&SocketAddr::from(([127, 0, 0, 1], 3000)))
-        .serve(router.into_make_service())
-        .await
-        .unwrap();
+    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
+    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
+    axum::serve(listener, router.into_make_service()).await.unwrap();
 }

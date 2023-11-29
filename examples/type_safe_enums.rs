@@ -1,7 +1,6 @@
-use axum::routing::post;
 use axum::Router;
+use axum::{http::StatusCode, routing::post};
 use axum_typed_multipart::{TryFromField, TryFromMultipart, TypedMultipart};
-use reqwest::StatusCode;
 use std::net::SocketAddr;
 
 #[derive(Debug, TryFromField)]
@@ -23,8 +22,9 @@ async fn test_multipart(multipart: TypedMultipart<MultipartData>) -> StatusCode 
 
 #[tokio::main]
 async fn main() {
-    axum::Server::bind(&SocketAddr::from(([127, 0, 0, 1], 3000)))
-        .serve(Router::new().route("/", post(test_multipart)).into_make_service())
+    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
+    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
+    axum::serve(listener, Router::new().route("/", post(test_multipart)).into_make_service())
         .await
         .unwrap();
 }

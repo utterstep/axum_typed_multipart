@@ -46,8 +46,12 @@ async fn update_position(data: CustomMultipart<UpdatePositionRequest>) -> Status
 
 #[tokio::main]
 async fn main() {
-    axum::Server::bind(&SocketAddr::from(([127, 0, 0, 1], 3000)))
-        .serve(Router::new().route("/position/update", post(update_position)).into_make_service())
-        .await
-        .unwrap();
+    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
+    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
+    axum::serve(
+        listener,
+        Router::new().route("/position/update", post(update_position)).into_make_service(),
+    )
+    .await
+    .unwrap();
 }

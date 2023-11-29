@@ -17,8 +17,12 @@ async fn create_user(data: TypedMultipart<CreateUserRequest>) -> StatusCode {
 
 #[tokio::main]
 async fn main() {
-    axum::Server::bind(&SocketAddr::from(([127, 0, 0, 1], 3000)))
-        .serve(Router::new().route("/users/create", post(create_user)).into_make_service())
-        .await
-        .unwrap();
+    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
+    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
+    axum::serve(
+        listener,
+        Router::new().route("/users/create", post(create_user)).into_make_service(),
+    )
+    .await
+    .unwrap();
 }

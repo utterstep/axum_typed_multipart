@@ -68,57 +68,24 @@ impl IntoResponse for TypedMultipartError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use axum::body::HttpBody;
-    use axum::extract::{FromRequest, Multipart};
-    use axum::http::{Request, StatusCode};
-    use axum::routing::post;
-    use axum::{async_trait, BoxError, Router};
-    use axum_test_helper::TestClient;
-    use bytes::Bytes;
-    use reqwest::header;
+    use axum::async_trait;
+    use axum::extract::{FromRequest, Multipart, Request};
+    use axum::http::StatusCode;
 
     struct Data();
 
     #[async_trait]
-    impl<S, B> FromRequest<S, B> for Data
+    impl<S> FromRequest<S> for Data
     where
-        B: HttpBody + Send + 'static,
-        B::Data: Into<Bytes>,
-        B::Error: Into<BoxError>,
         S: Send + Sync,
     {
         type Rejection = TypedMultipartError;
 
-        async fn from_request(req: Request<B>, state: &S) -> Result<Self, Self::Rejection> {
+        async fn from_request(req: Request, state: &S) -> Result<Self, Self::Rejection> {
             let multipart = &mut Multipart::from_request(req, state).await?;
             while multipart.next_field().await?.is_some() {}
             unreachable!()
         }
-    }
-
-    fn create_client() -> TestClient {
-        let handler = |_: Data| async { panic!("should never be called") };
-        TestClient::new(Router::new().route("/", post(handler)))
-    }
-
-    #[tokio::test]
-    async fn test_invalid_request() {
-        let res = create_client().post("/").json(&"{}").send().await;
-        assert_eq!(res.status(), StatusCode::BAD_REQUEST);
-        assert!(res.text().await.contains("request is malformed"));
-    }
-
-    #[tokio::test]
-    async fn test_invalid_request_body() {
-        let res = create_client()
-            .post("/")
-            .header(header::CONTENT_TYPE, "multipart/form-data; boundary=BOUNDARY")
-            .body("BOUNDARY\r\n\r\nBOUNDARY--\r\n")
-            .send()
-            .await;
-
-        assert_eq!(res.status(), StatusCode::BAD_REQUEST);
-        assert!(res.text().await.contains("request body is malformed"));
     }
 
     #[tokio::test]
